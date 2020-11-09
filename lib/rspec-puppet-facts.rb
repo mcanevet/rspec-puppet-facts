@@ -112,6 +112,8 @@ module RspecPuppetFacts
       end
     end
 
+    facterversion_obj = Gem::Version.new(facterversion)
+
     # FacterDB may have newer versions of facter data for which it contains a subset of all possible
     # facter data (see FacterDB 0.5.2 for Facter releases 3.8 and 3.9). In this situation we need to
     # cycle through and downgrade Facter versions per platform type until we find matching Facter data.
@@ -123,8 +125,6 @@ module RspecPuppetFacts
         if RspecPuppetFacts.spec_facts_strict?
           raise ArgumentError, "No facts were found in the FacterDB for Facter v#{facterversion} on #{filter_spec}, aborting"
         end
-
-        facterversion_obj = Gem::Version.new(facterversion)
 
         version = FacterDB.get_facts(filter_spec).map { |facts| Gem::Version.new(facts[:facterversion]) }.sort.reverse.detect { |v| v <= facterversion_obj }
 
