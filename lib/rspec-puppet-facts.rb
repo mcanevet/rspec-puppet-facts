@@ -118,26 +118,19 @@ module RspecPuppetFacts
     # facter data (see FacterDB 0.5.2 for Facter releases 3.8 and 3.9). In this situation we need to
     # cycle through and downgrade Facter versions per platform type until we find matching Facter data.
     filter.each do |filter_spec|
-      facter_version_filter = RspecPuppetFacts.facter_version_to_filter(facterversion)
-      db = FacterDB.get_facts(filter_spec.merge({ :facterversion =>  facter_version_filter }))
+      version = FacterDB.get_facts(filter_spec).map { |facts| Gem::Version.new(facts[:facterversion]) }.sort.reverse.detect { |v| v <= facterversion_obj }
+      next unless version
+      version = version.to_s
 
-      if db.empty?
+      unless version == facterversion
         if RspecPuppetFacts.spec_facts_strict?
           raise ArgumentError, "No facts were found in the FacterDB for Facter v#{facterversion} on #{filter_spec}, aborting"
         end
 
-        version = FacterDB.get_facts(filter_spec).map { |facts| Gem::Version.new(facts[:facterversion]) }.sort.reverse.detect { |v| v <= facterversion_obj }
-
-        next unless version
-        version = version.to_s
-        facter_version_filter = "/\\A#{Regexp.escape(version)}/"
-
-        unless version == facterversion
-          RspecPuppetFacts.warning "No facts were found in the FacterDB for Facter v#{facterversion} on #{filter_spec}, using v#{version} instead"
-        end
+        RspecPuppetFacts.warning "No facts were found in the FacterDB for Facter v#{facterversion} on #{filter_spec}, using v#{version} instead"
       end
 
-      filter_spec[:facterversion] = facter_version_filter
+      filter_spec[:facterversion] = "/\\A#{Regexp.escape(version)}/"
     end
 
     received_facts = FacterDB::get_facts(filter)
